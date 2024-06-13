@@ -58,11 +58,19 @@ func (s *simpleServer) Serve(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (lb *LoadBalancer) getNextAvailableServer() Server {
-
+	server := lb.servers[lb.roundRobinCount%len(lb.servers)]
+	for !server.IsActive() {
+		lb.roundRobinCount++
+		server = lb.servers[lb.roundRobinCount%len(lb.servers)]
+	}
+	lb.roundRobinCount++
+	return server
 }
 
 func (lb *LoadBalancer) serveProxy(rw http.ResponseWriter, r *http.Request) {
-
+	targetServer := lb.getNextAvailableServer()
+	fmt.Printf("forwarding request to address %q\n", targetServer.Address())
+	targetServer.Serve(rw, r)
 }
 
 func main() {
